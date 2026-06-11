@@ -47,6 +47,26 @@ Do not assume that every column is equally reliable or equally appropriate for m
 | `internal_code` | numeric | Internal processing code. | |
 | `credit_decision` | binary target | Historical credit decision. 1 means approved; 0 means rejected. | Available only in the training file. This is the target variable for modeling. |
 
+## Submission Format
+
+- File **CSV** (or Parquet) with **5,000 rows + header**
+- Columns: `id, credit_decision` — must match `sample_submission.csv`
+- Archive formats accepted: `.zip`, `.gz`, `.7z`, `.tar`
+- **Max 5 submissions per day**
+- Up to **2 final submissions** count toward the leaderboard
+- **Deadline:** ~2026-06-17
+
+**Submit via Kaggle CLI:**
+
+```bash
+kaggle competitions submit \
+  -c esade-dsf-26-personal-loan-credit-decision \
+  -f submissions/<your_file>.csv \
+  -m "<short description>"
+```
+
+Or upload manually at: https://www.kaggle.com/competitions/esade-dsf-26-personal-loan-credit-decision/submissions
+
 ## Project Layout
 
 ```
