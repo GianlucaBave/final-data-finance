@@ -1,0 +1,26 @@
+column,type,student_description,notes
+id,identifier,Unique synthetic identifier for each loan application.,Do not use as a meaningful applicant characteristic.
+date,date / string,Date associated with the credit decision or application record.,Imported from more than one legacy source; formats may not be fully standardized.
+prev_default,categorical / string,Historical indication of whether the applicant had a previous default event.,Legacy encodings are not fully standardized.
+age,numeric,"Applicant age at the time of the credit decision, when available.",Some records are missing.
+birth_year,numeric,"Applicant year of birth, when available.",
+religion,categorical,Synthetic demographic group code.,"Synthetic group code is used because demographic variables may be subject to legal and regulatory limitations for fairness and discrimination-related issues."
+race,categorical,Synthetic demographic group code.,"Synthetic group code is used because demographic variables may be subject to legal and regulatory limitations for fairness and discrimination-related issues."
+external_pd_score,numeric,"External provider's estimated default-risk score, when available.",
+cr_scores_fico,numeric,FICO-like credit score when available.,
+cr_scores_vantage,numeric,Vantage-like credit score when available.,
+cr_scores_schufa,numeric,SCHUFA-like credit score when available.,
+highest_ed,ordinal categorical / numeric,"Highest reported education level, coded from 1 to 5.",Higher values represent higher reported education levels.
+job_category,categorical,Structured employment category derived from the applicant's job profile.,Values describe broad employment stability and job profile groups.
+ann_income,numeric / string-like numeric,Reported annual income.,Imported from more than one legacy source.
+other_income,numeric / string-like numeric,Reported additional income beyond main annual income.,Imported from more than one legacy source.
+status,categorical,Applicant civil or household status.,
+kids,numeric,Number of reported dependent children.,
+analyst_opinion,text,Short qualitative note written during the credit review process.,Free-text field. May contain useful underwriting information.
+amount,numeric,Loan amount requested by the applicant.,
+vip,boolean / categorical,Indicator of whether the applicant belongs to a special relationship segment.,It may affect the credit decision process in some cases.
+risk_indicator_1,numeric,Risk indicator from an aggregator source.,"Unfortunately, we don't have more information on the type of underlying data. Please check consistency between variables."
+risk_indicator_2,numeric,Risk indicator from an aggregator source.,"Unfortunately, we don't have more information on the type of underlying data. Please check consistency between variables."
+risk_indicator_3,numeric,Risk indicator from an aggregator source.,"Unfortunately, we don't have more information on the type of underlying data. Please check consistency between variables."
+internal_code,numeric,Internal processing code.,
+credit_decision,binary target,Historical credit decision. 1 means approved; 0 means rejected.,Available only in the training file. This is the target variable for modeling.
