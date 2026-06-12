@@ -72,3 +72,10 @@ def build(D):
         Xte[c] = pd.Categorical(te[c], categories=cats)
     y = tr['credit_decision']
     return Xtr, y, Xte, te['id'], tr
+
+def provenance(df):
+    """Source-system flags recovered from the legacy formats (computed on raw strings)."""
+    out = pd.DataFrame(index=df.index)
+    out['src_system'] = df['date'].astype(str).str.match(r'\d{4}-').astype(int)
+    out['pd_word'] = df['prev_default'].isin(['Yes','No']).astype(int)
+    return out

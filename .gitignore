@@ -12,3 +12,6 @@ venv/
 # Submissions (large / experimental)
 submissions/*.csv
 !submissions/.gitkeep
+
+# model artifacts
+src/*.npy
