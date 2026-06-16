@@ -13,7 +13,8 @@ Every fix lives in one shared module — **`src/prep.py`** — so train and test
 | C5 | `prev_default` encodings | Map `{0,No}→0`, `{1,Yes}→1`, blank→NaN (kept; trees handle missing) | `engineer()` |
 | C6 | `age` missing (~10%) | Impute from `year − birth_year` (verified consistent: median mismatch = 0, max = 1 yr) | `engineer()` |
 | C7 | `risk_indicator_1 ≡ risk_indicator_2` | **Coalesce** into `risk12 = r1.fillna(r2)`; keep `risk3` | `engineer()` |
-| C8 | Credit scores, 3 scales, ~95% missing | **z-score each bureau** on combined train+test, then coalesce → `credit_z` | `add_scores()` |
+| C8 | Credit scores, 3 scales, ~95% missing | **z-score each bureau on TRAIN-ONLY stats** (no test leak), then coalesce → `credit_z` | `add_scores_fixed()` |
+| C11 | Structured missingness | Added explicit flags: `ann_income_missing`, `other_income_missing`, `prev_default_missing` | `prep_v2.engineer()` |
 | C9 | `analyst_opinion` free text | Keep as a **categorical** (60 fixed templates) — no fragile keyword parsing needed | `build()` |
 | C10 | `religion`, `race` | **Dropped** — `DROP_PROTECTED` (Slide 7) | `prep.py` |
 
@@ -38,14 +39,16 @@ out['risk12'] = df['risk_indicator_1'].fillna(df['risk_indicator_2'])
 ```
 
 ```python
-# C8: three bureau scores, different scales → z-score each, then coalesce to one
+# C8: three bureau scores, different scales → z-score each (TRAIN-ONLY stats), then coalesce
 for c in ['cr_scores_fico','cr_scores_vantage','cr_scores_schufa']:
-    mu, sd = pd.concat([tr[c], te[c]]).mean(), pd.concat([tr[c], te[c]]).std()
+    mu, sd = tr[c].mean(), tr[c].std()          # train only — no test peeking
     tr[c+'_z'], te[c+'_z'] = (tr[c]-mu)/sd, (te[c]-mu)/sd
 out['credit_z'] = (raw['cr_scores_fico_z']
                    .fillna(raw['cr_scores_vantage_z'])
                    .fillna(raw['cr_scores_schufa_z']))
 ```
+
+> **Leakage fix (v2):** the earlier version computed these stats on train+test combined — a mild leak. For tree models the numeric effect is ≈ 0 (trees split on rank, and a z-score is monotonic), but train-only is the correct, reportable choice.
 
 ## Pipeline (as implemented)
 

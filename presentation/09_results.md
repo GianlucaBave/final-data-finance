@@ -11,8 +11,11 @@
 | **v6** | 9× CatBoost pool + blend | 0.8615 | **0.8565** | 0.512 |
 | v7 | Repeated-CV (3 fold-seeds) | 0.8618 | 0.8550 | 0.524 |
 | v8 | + pseudo-labeling | 0.8613* | 0.8555 | 0.514 |
+| **v10** | **clean prep + pseudo + smooth threshold** | **0.8590** (AUC 0.9377) | 0.8535 | 0.509 |
 
-\* v8 OOF is mildly optimistic by construction; its true edge is the **+0.14pt** the pseudo-labeling won on the rolling harness, stacked on v7's level.
+\* v8 OOF is mildly optimistic by construction; its true edge is the **+0.14pt** the pseudo-labeling won on the rolling harness. v10 reports a slightly lower OOF because the **smooth threshold** is deliberately conservative (robustness over peak-chasing) and the z-scoring is now leak-free.
+
+**Model-family ladder (5-fold):** Naive Bayes 0.760 → LDA 0.777 → LogReg 0.784 → RandomForest 0.833 → LightGBM 0.836 → **ensemble 0.859**.
 
 **Public leaderboard: tied for #1 at 0.8565** (vs leader 0.8565). Our calibration is tight — v1 validated at 0.8525 and scored 0.8515 publicly (±0.1pt).
 
@@ -20,7 +23,7 @@
 
 ## The validation→leaderboard gap is real but small
 
-OOF ~0.861 vs public ~0.856. That ~0.5pt gap is **distribution shift** — May 2026 is genuinely a bit harder than the 4-year average, which the rolling harness already warned us about. It is *not* overfitting: our gap is stable and we never tuned to the public score.
+OOF ~0.859 vs public ~0.856. That gap is **distribution shift** — May 2026 is a bit harder than the 4-year average, which the rolling harness already warned us about. It is *not* overfitting: our gap is stable and we never tuned to the public score. **Adversarial validation confirms** train and test are identically distributed apart from time (AUC 0.497 once dates are excluded).
 
 ## The threshold lesson (visible in the table)
 

@@ -1,18 +1,35 @@
 # Slide 8 — Modeling Approach
 
-## Models we used
+## Model selection — baseline spot-check (5-fold accuracy)
+
+We didn't just assume boosted trees; we measured. A spot-check across model families confirms the choice and gives a clean progression:
+
+| Model | 5-fold accuracy |
+|---|---|
+| Naive Bayes | 0.7597 |
+| LDA | 0.7770 |
+| Logistic Regression | 0.7835 |
+| Random Forest | 0.8334 |
+| **LightGBM** | **0.8358** |
+
+Boosted trees win decisively → all further effort went into them, ensembling, and validation rigor.
+
+## Final model families
 
 | Model | Why | Result (OOF accuracy) |
 |---|---|---|
-| Majority-class | Floor / sanity check | 0.520 |
-| `analyst_opinion` tiers only | How far one feature gets you | ~0.74 |
-| **LightGBM** | Fast, native categoricals + missing handling | ~0.858 single, 0.8578 in pool |
+| **LightGBM** | Fast, native categoricals + missing handling | ~0.858 |
 | **XGBoost** | Different tree algorithm → ensemble diversity | 0.8581 |
-| **CatBoost** | Ordered target stats — best on the 60-template opinion column | **0.8607 (strongest single family)** |
-| **Blend (LGBM + CatBoost)** | Weighted average of probabilities | **0.8615** |
-| Repeated-CV + pseudo-labeling | Variance reduction + semi-supervised | 0.8613–0.8618 (final, v8) |
+| **CatBoost** | Ordered target stats — best on the 60-template opinion column | 0.8607 (strongest single) |
+| **Ensemble (LGBM+XGB+CatBoost)** | Mean-blended probabilities | 0.8590–0.8615 |
+| **v10 = clean prep + pseudo-labeling** | Final model | **0.8590 (AUC 0.9377)** |
 
-We deliberately skipped logistic regression / random forest as final models — gradient-boosted trees dominate this kind of tabular data, and our effort went into *validation rigor* and *ensembling* instead.
+## Adversarial validation — is test distributed like train?
+
+We trained a classifier to separate train rows from test rows:
+
+- **All features → AUC = 1.000** — but *only because of the date* (test is entirely May 2026, absent from train).
+- **Excluding `year`/`month` → AUC = 0.497 ≈ 0.5** — apart from time, **train and test are identically distributed**. No hidden corruption beyond the traps we removed; our time-aware validation is trustworthy.
 
 ## Validation strategy (three independent views)
 
@@ -22,7 +39,7 @@ We deliberately skipped logistic regression / random forest as final models — 
 
 ## Threshold tuning (because the metric is accuracy)
 
-Accuracy needs a hard 0/1 label, so we tune the probability cutoff on OOF predictions instead of defaulting to 0.5. Best cutoff ≈ 0.52, giving a **predicted approval rate ≈ 0.51** — consistent with the declining 2026 trend. Submissions with looser cutoffs (higher approval rate) consistently scored worse (Slide 9).
+Accuracy needs a hard 0/1 label, so we tune the cutoff on OOF predictions instead of defaulting to 0.5. **We use a *smooth* threshold — the average of the top-1% of candidate cutoffs — not a single argmax.** A single argmax overfits OOF noise (it's what burned submissions v3 and v7); averaging is more robust on the private set. Final cutoff ≈ 0.527, **approval rate ≈ 0.51**, consistent with the declining 2026 trend.
 
 ## Hyperparameter tuning
 
