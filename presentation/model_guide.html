@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESADE DSF26 — Personal Loan Credit Decision · Model Guide</title>
+<style>
+:root{
+  --navy:#1f3a5f; --red:#c0392b; --green:#27ae60; --grey:#7f8c8d;
+  --bg:#fafafa; --card:#ffffff; --code:#f4f4f4; --text:#222;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.55;}
+header{position:sticky;top:0;background:var(--navy);color:#fff;
+  padding:14px 28px;display:flex;justify-content:space-between;align-items:center;z-index:10;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);}
+header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.3px}
+.btn{background:#fff;color:var(--navy);border:none;padding:8px 16px;border-radius:6px;
+  font-weight:600;cursor:pointer;font-size:14px;transition:transform .1s}
+.btn:hover{transform:scale(1.05)}
+main{max-width:980px;margin:0 auto;padding:28px;}
+section.lang{display:none}
+section.lang.active{display:block}
+h2{color:var(--navy);border-bottom:3px solid var(--navy);padding-bottom:6px;margin-top:42px;font-size:24px}
+h3{color:var(--navy);margin-top:28px;font-size:18px}
+h4{color:var(--red);margin-top:18px;font-size:15px;text-transform:uppercase;letter-spacing:.5px}
+.card{background:var(--card);border-radius:8px;padding:20px 24px;margin:16px 0;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:4px solid var(--navy)}
+.card.trap{border-left-color:var(--red)}
+.card.win{border-left-color:var(--green)}
+.callout{background:#fff8e6;border:1px solid #f0c97a;border-radius:6px;padding:12px 16px;margin:14px 0;font-style:italic}
+pre{background:var(--code);padding:14px 18px;border-radius:6px;overflow-x:auto;font-size:13px;line-height:1.4}
+code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}
+th{background:var(--navy);color:#fff;font-weight:600}
+tr:nth-child(even){background:#f9f9f9}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.tag.drop{background:#fce8e6;color:var(--red)}
+.tag.keep{background:#e6f4ea;color:var(--green)}
+.tag.fix{background:#fef3c7;color:#92400e}
+.diagram{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:18px 0;text-align:center}
+.diagram svg{max-width:100%;height:auto}
+.kpi-row{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+.kpi{flex:1;min-width:140px;background:#fff;border-radius:8px;padding:16px;text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:4px solid var(--navy)}
+.kpi .num{font-size:28px;font-weight:700;color:var(--navy)}
+.kpi .lbl{font-size:12px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.toc{background:#fff;border-radius:8px;padding:18px 24px;margin:24px 0;border-left:4px solid var(--navy)}
+.toc ol{padding-left:22px;margin:6px 0}
+.toc a{color:var(--navy);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+footer{margin:40px 0 20px;text-align:center;color:var(--grey);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ESADE DSF26 — Personal Loan Credit Decision · Model Guide</h1>
+  <button class="btn" id="lang-toggle">🇮🇹 Italiano</button>
+</header>
+
+<main>
+
+<!-- ================= ENGLISH ================= -->
+<section class="lang lang-en active">
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#en-intro">Problem &amp; framing</a></li>
+    <li><a href="#en-data">The data</a></li>
+    <li><a href="#en-traps">The three traps</a></li>
+    <li><a href="#en-cleaning">Cleaning &amp; feature engineering</a></li>
+    <li><a href="#en-pipeline">Pipeline diagram</a></li>
+    <li><a href="#en-model">Model architecture</a></li>
+    <li><a href="#en-validation">Validation strategy</a></li>
+    <li><a href="#en-ethics">Ethics</a></li>
+    <li><a href="#en-results">Results</a></li>
+    <li><a href="#en-qa">Anticipated questions</a></li>
+  </ol>
+</div>
+
+<h2 id="en-intro">1. Problem &amp; framing</h2>
+<div class="card">
+<p><strong>Task.</strong> Binary classification: predict the historical <code>credit_decision</code> (1 = approved, 0 = rejected) for 5,000 personal-loan applications in May 2026, given 25,000 historical decisions from 2022–April 2026.</p>
+<p><strong>Metric.</strong> Accuracy on hard 0/1 labels. The probability→label threshold is therefore part of the model.</p>
+<p><strong>What we are really predicting:</strong> the analyst's historical decision, not whether the loan ultimately defaulted. Any analyst bias is baked into the target. Important for the ethics section.</p>
+<p><strong>Time dimension.</strong> Train ends April 2026, test is entirely May 2026 → out-of-time evaluation. Validation must respect time, not just be random.</p>
+</div>
+
+<h2 id="en-data">2. The data</h2>
+<table>
+<tr><th>Set</th><th>Rows</th><th>Period</th><th>Target</th></tr>
+<tr><td>Train</td><td>25,000</td><td>2022-01 → 2026-04</td><td>✅ included</td></tr>
+<tr><td>Test</td><td>5,000</td><td>2026-05 only</td><td>❌ predict</td></tr>
+</table>
+<p>Target balance: <strong>51.98% approved / 48.02% rejected</strong>. A majority-class guess only scores 0.52, so every accuracy point must be earned.</p>
+<p>Public leaderboard = 40% of test (2,000 rows). <strong>Private leaderboard = 60% (3,000 rows)</strong> — only the private is graded.</p>
+
+<h2 id="en-traps">3. The three traps</h2>
+<p>The professor wrote in the brief: <em>"Do not assume that every column is equally reliable."</em> Treating that line literally, we hunted for sabotaged columns. We found three.</p>
+
+<div class="card trap">
+<h4>Trap 1 — <code>internal_code</code>: planted leak</h4>
+<p>Correlates with the target <strong>+0.92</strong> in train. A trivial rule <code>internal_code &gt; 50</code> hits <strong>99.1% accuracy in train</strong>. Looks like the best feature in the dataset.</p>
+<p><strong>Detection — the opinion-probe.</strong> <code>analyst_opinion</code> is the same 60 fixed templates in train and test. Their per-template approval rate is a stable proxy for the underlying signal. Any genuine feature should correlate with that proxy <em>the same way</em> in train and in test. <code>internal_code</code> doesn't:</p>
+<pre><code>opmap = train.groupby('analyst_opinion').credit_decision.mean()  # 60 templates
+tr_op = train.analyst_opinion.map(opmap)
+te_op = test.analyst_opinion.map(opmap)
+
+train.internal_code.corr(tr_op)   # +0.46  → real signal
+test.internal_code.corr(te_op)    # ≈ 0.00 → scrambled in test</code></pre>
+<p>Same marginal distribution in train and test, but in test the values are decoupled from every other risk feature. The values were <strong>scrambled</strong>.</p>
+<p><span class="tag drop">DROP</span> Without this catch, the model would score ~99% in cross-validation and ~52% on the private 60%.</p>
+</div>
+
+<div class="card trap">
+<h4>Trap 2 — <code>external_pd_score</code>: vanishes in test</h4>
+<p>5.2% missing in train (usable). <strong>100% missing in test</strong> (useless at inference time).</p>
+<p>Caught in one line: <code>train.isna().mean()</code> vs <code>test.isna().mean()</code>.</p>
+<p><span class="tag drop">DROP</span></p>
+</div>
+
+<div class="card trap">
+<h4>Trap 3 — <code>race</code>, <code>religion</code>: the ethical trap</h4>
+<p>Included as synthetic codes. Measured cost of using them: <strong>+0.7pt accuracy</strong> (0.859 → 0.866).</p>
+<p>Refused on principle. Reasons in §8.</p>
+<p><span class="tag drop">DROP</span></p>
+</div>
+
+<h2 id="en-cleaning">4. Cleaning &amp; feature engineering</h2>
+<p>All cleaning lives in one shared module — <code>src/prep.py</code> (v1) and <code>src/prep_v2.py</code> (audit-fixed) — so train and test are cleaned identically. No leakage, fully reproducible.</p>
+
+<h3>Most important code snippet — the date fix</h3>
+<pre><code>def parse_dates(s):
+    iso = pd.to_datetime(s, format='%Y-%m-%d', errors='coerce')   # 2022-06-08
+    mon = pd.to_datetime(s, format='%b-%Y',    errors='coerce') + pd.Timedelta(days=14)  # Apr-2026
+    return iso.fillna(mon)</code></pre>
+<p>~50/50 split between the two formats; combine them, dating <code>Mon-YYYY</code> mid-month.</p>
+
+<h3>Income unit fix (bimodal histogram)</h3>
+<pre><code># log10(ann_income) is bimodal with an empty gap 700..2000:
+# half the rows are in thousands, half in units. Rescale below the gap.
+inc = pd.to_numeric(df['ann_income'], errors='coerce')
+out['ann_income'] = np.where(inc &lt; 700, inc * 1000, inc)</code></pre>
+
+<h3>Risk shape features (the inverted-U)</h3>
+<pre><code># Linear corr with target was only -0.08 → risk indicators looked useless.
+# But approval peaks mid-range (~50) and drops at both extremes:
+X['risk12_dev'] = (X.risk12 - 55).abs()
+X['risk3_dev']  = (X.risk3  - 55).abs()
+X['risk_max']   = X[['risk12','risk3']].max(axis=1)
+X['risk_mean']  = X[['risk12','risk3']].mean(axis=1)</code></pre>
+<p>These shape features end up at the <strong>top</strong> of the importance ranking — the raw indicators alone would have been nearly worthless.</p>
+
+<h3>Credit-bureau z-scoring (the data-leak fix)</h3>
+<pre><code># Three bureaus (FICO, Vantage, SCHUFA) → three different scales.
+# v2 fix: compute the z-score stats on TRAIN ONLY, then apply to test.
+for c in ['cr_scores_fico','cr_scores_vantage','cr_scores_schufa']:
+    mu, sd = train[c].mean(), train[c].std()        # train only, no test peeking
+    train[c+'_z'] = (train[c] - mu) / sd
+    test[c+'_z']  = (test[c]  - mu) / sd
+credit_z = fico_z.fillna(vantage_z).fillna(schufa_z)</code></pre>
+
+<h2 id="en-pipeline">5. Pipeline diagram</h2>
+<div class="diagram">
+<svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Data pipeline diagram">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <style>
+    .box{fill:#fff;stroke:#1f3a5f;stroke-width:1.5;rx:6}
+    .box-red{fill:#fce8e6;stroke:#c0392b;stroke-width:1.5;rx:6}
+    .box-green{fill:#e6f4ea;stroke:#27ae60;stroke-width:1.5;rx:6}
+    .lbl{font-family:sans-serif;font-size:13px;fill:#222;text-anchor:middle}
+    .lbl-bold{font-weight:600}
+    .arrow{stroke:#1f3a5f;stroke-width:1.5;fill:none;marker-end:url(#arr)}
+  </style>
+  <rect class="box" x="20" y="20" width="160" height="50"/>
+  <text class="lbl lbl-bold" x="100" y="50">raw train.csv / test.csv</text>
+
+  <rect class="box-red" x="220" y="20" width="170" height="50"/>
+  <text class="lbl lbl-bold" x="305" y="42">drop 3 traps</text>
+  <text class="lbl" x="305" y="58" font-size="11">internal_code · pd_score · race/religion</text>
+
+  <rect class="box" x="430" y="20" width="150" height="50"/>
+  <text class="lbl lbl-bold" x="505" y="42">parse_dates()</text>
+  <text class="lbl" x="505" y="58" font-size="11">ISO + Mon-YYYY</text>
+
+  <rect class="box" x="610" y="20" width="130" height="50"/>
+  <text class="lbl lbl-bold" x="675" y="42">unit fix</text>
+  <text class="lbl" x="675" y="58" font-size="11">income ×1000</text>
+
+  <rect class="box" x="20" y="120" width="160" height="50"/>
+  <text class="lbl lbl-bold" x="100" y="142">coalesce risk1/2</text>
+  <text class="lbl" x="100" y="158" font-size="11">corr(r1,r2)=1.0</text>
+
+  <rect class="box" x="220" y="120" width="170" height="50"/>
+  <text class="lbl lbl-bold" x="305" y="142">risk shape feats</text>
+  <text class="lbl" x="305" y="158" font-size="11">|risk-55|, max, mean</text>
+
+  <rect class="box" x="430" y="120" width="150" height="50"/>
+  <text class="lbl lbl-bold" x="505" y="142">z-score credit</text>
+  <text class="lbl" x="505" y="158" font-size="11">train-only stats</text>
+
+  <rect class="box" x="610" y="120" width="130" height="50"/>
+  <text class="lbl lbl-bold" x="675" y="142">missing flags</text>
+  <text class="lbl" x="675" y="158" font-size="11">income / pd</text>
+
+  <rect class="box-green" x="160" y="220" width="220" height="50"/>
+  <text class="lbl lbl-bold" x="270" y="242">clean X (20 features)</text>
+  <text class="lbl" x="270" y="258" font-size="11">numeric + native categoricals</text>
+
+  <rect class="box-green" x="420" y="220" width="220" height="50"/>
+  <text class="lbl lbl-bold" x="530" y="242">ENSEMBLE (16 members)</text>
+  <text class="lbl" x="530" y="258" font-size="11">LGBM × 9 + XGB × 3 + CAT × 4</text>
+
+  <rect class="box-green" x="270" y="310" width="220" height="50"/>
+  <text class="lbl lbl-bold" x="380" y="332">submission CSV</text>
+  <text class="lbl" x="380" y="348" font-size="11">5,000 rows, smoothed threshold</text>
+
+  <line class="arrow" x1="180" y1="45" x2="218" y2="45"/>
+  <line class="arrow" x1="390" y1="45" x2="428" y2="45"/>
+  <line class="arrow" x1="580" y1="45" x2="608" y2="45"/>
+  <line class="arrow" x1="675" y1="70" x2="675" y2="118"/>
+  <line class="arrow" x1="610" y1="145" x2="582" y2="145"/>
+  <line class="arrow" x1="430" y1="145" x2="392" y2="145"/>
+  <line class="arrow" x1="220" y1="145" x2="182" y2="145"/>
+  <line class="arrow" x1="100" y1="170" x2="100" y2="200" />
+  <line class="arrow" x1="100" y1="200" x2="270" y2="218"/>
+  <line class="arrow" x1="380" y1="245" x2="418" y2="245"/>
+  <line class="arrow" x1="530" y1="270" x2="380" y2="308"/>
+</svg>
+</div>
+
+<h2 id="en-model">6. Model architecture</h2>
+<div class="card">
+<p>Three boosting families, mean-blended. Diversity decorrelates errors.</p>
+<ul>
+  <li><strong>9 × LightGBM</strong> — top-3 hyperparameter configs (random-search) × 3 seeds, each 5-fold</li>
+  <li><strong>3 × XGBoost</strong> — 3 seeds, each 5-fold</li>
+  <li><strong>4 × CatBoost</strong> — 2 configs × 2 seeds, each 5-fold (native cat encoding for the 60 opinion templates)</li>
+</ul>
+<p>Semi-supervised step (v8/v10): pseudo-label test rows where the base ensemble is ≥97% confident, add them to every training fold at sample_weight = 0.5, refit.</p>
+</div>
+
+<div class="diagram">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ensemble architecture diagram">
+  <style>
+    .b{fill:#fff;stroke:#1f3a5f;stroke-width:1.5;rx:6}
+    .l{font-family:sans-serif;font-size:13px;fill:#222;text-anchor:middle;font-weight:600}
+    .l2{font-family:sans-serif;font-size:11px;fill:#555;text-anchor:middle}
+    .ar{stroke:#1f3a5f;stroke-width:1.5;fill:none;marker-end:url(#arr2)}
+  </style>
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <rect class="b" x="20" y="20" width="140" height="60" style="fill:#fff8e6"/>
+  <text class="l" x="90" y="45">clean X</text>
+  <text class="l2" x="90" y="62">20 features</text>
+
+  <rect class="b" x="220" y="10" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="l" x="300" y="34">9 × LightGBM</text>
+
+  <rect class="b" x="220" y="62" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="l" x="300" y="86">3 × XGBoost</text>
+
+  <rect class="b" x="220" y="114" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="l" x="300" y="138">4 × CatBoost</text>
+
+  <rect class="b" x="440" y="60" width="140" height="60" style="fill:#fce8e6"/>
+  <text class="l" x="510" y="84">mean blend</text>
+  <text class="l2" x="510" y="102">16 probabilities → 1</text>
+
+  <rect class="b" x="600" y="60" width="110" height="60" style="fill:#e6f4ea"/>
+  <text class="l" x="655" y="80">smooth t</text>
+  <text class="l2" x="655" y="96">top-1% avg ≈ 0.527</text>
+
+  <rect class="b" x="20" y="160" width="690" height="60" style="fill:#fafafa"/>
+  <text class="l" x="365" y="184">Pseudo-labeling pass (v8 / v10)</text>
+  <text class="l2" x="365" y="202">test rows with confidence ≥ 0.97 added at weight 0.5 — measured +0.14pt on rolling</text>
+
+  <line class="ar" x1="160" y1="50" x2="218" y2="31"/>
+  <line class="ar" x1="160" y1="50" x2="218" y2="83"/>
+  <line class="ar" x1="160" y1="50" x2="218" y2="135"/>
+  <line class="ar" x1="380" y1="31" x2="438" y2="80"/>
+  <line class="ar" x1="380" y1="83" x2="438" y2="92"/>
+  <line class="ar" x1="380" y1="135" x2="438" y2="104"/>
+  <line class="ar" x1="580" y1="90" x2="598" y2="90"/>
+</svg>
+</div>
+
+<h2 id="en-validation">7. Validation strategy</h2>
+<p>Three independent lenses, each catching a failure mode the others miss.</p>
+<table>
+<tr><th>Scheme</th><th>What it catches</th></tr>
+<tr><td>5-fold Stratified K-Fold OOF</td><td>Average performance across 25k rows, used to tune the threshold</td></tr>
+<tr><td>Time split (train ≤2024 → validate 2025–26)</td><td>Temporal drift a random split would hide</td></tr>
+<tr><td><strong>Rolling next-month harness</strong></td><td>The closest simulation of the real task: train ends 04/2026, test is 05/2026</td></tr>
+</table>
+<p>For each of the last 6 months in train, fit on everything before and predict that month → 2,886 pooled out-of-time predictions. Every experiment was judged here, not on the public leaderboard.</p>
+
+<h3>Code: 5-fold OOF + smooth threshold</h3>
+<pre><code>oof = np.zeros(len(X))
+for tr_i, va_i in StratifiedKFold(5, shuffle=True, random_state=42).split(X, y):
+    m = lgb.LGBMClassifier(**params)
+    m.fit(X.iloc[tr_i], y.iloc[tr_i],
+          eval_set=[(X.iloc[va_i], y.iloc[va_i])],
+          callbacks=[lgb.early_stopping(150)])
+    oof[va_i] = m.predict_proba(X.iloc[va_i])[:, 1]
+
+# Smooth threshold — avoid argmax overfitting OOF noise
+ths = np.linspace(0.35, 0.65, 601)
+accs = [((oof &gt; t) == y).mean() for t in ths]
+smooth_t = ths[np.argsort(accs)[-6:]].mean()   # top-1% average ≈ 0.527</code></pre>
+
+<h2 id="en-ethics">8. Ethics</h2>
+<div class="card">
+<p><code>race</code> and <code>religion</code> are present in the dataset as synthetic codes. Using them gives <strong>+0.7pt</strong> accuracy (measured).</p>
+<p>We refused, for four reasons:</p>
+<ul>
+  <li><strong>Legal:</strong> GDPR (EU), ECOA (US), Equal Credit Opportunity Act — protected-attribute use is unlawful in credit decisions.</li>
+  <li><strong>Ethical:</strong> the target encodes any historical analyst bias; reproducing it amplifies it.</li>
+  <li><strong>Practical:</strong> a model that needs protected attributes can't be deployed.</li>
+  <li><strong>Methodological:</strong> the brief flagged these columns — using them would fail the implicit ethics question.</li>
+</ul>
+</div>
+
+<h2 id="en-results">9. Results</h2>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="num">0.8590</div><div class="lbl">OOF accuracy</div></div>
+  <div class="kpi"><div class="num">0.9377</div><div class="lbl">OOF ROC-AUC</div></div>
+  <div class="kpi"><div class="num">0.8565</div><div class="lbl">Public LB (v6 best)</div></div>
+  <div class="kpi"><div class="num">0.509</div><div class="lbl">Predicted approval</div></div>
+</div>
+
+<table>
+<tr><th>Model</th><th>5-fold accuracy</th></tr>
+<tr><td>Naive Bayes</td><td>0.7597</td></tr>
+<tr><td>LDA</td><td>0.7770</td></tr>
+<tr><td>Logistic Regression</td><td>0.7835</td></tr>
+<tr><td>Random Forest</td><td>0.8334</td></tr>
+<tr><td>Single LightGBM</td><td>0.8358</td></tr>
+<tr><td><strong>Ensemble (LGBM+XGB+CatBoost)</strong></td><td><strong>0.8590</strong></td></tr>
+</table>
+
+<p><strong>Public-LB plateau:</strong> last three submissions land at 0.8535 / 0.8540 / 0.8565 — within ±5 rows on the 2,000-row public split. That's the noise floor; we stopped chasing it.</p>
+
+<h2 id="en-qa">10. Anticipated questions</h2>
+<table>
+<tr><th>Likely question</th><th>Short answer</th></tr>
+<tr><td>How did you find the <code>internal_code</code> leak?</td><td>Opinion-probe (§3) — correlation with the 60-template approval rate doesn't match in train vs test.</td></tr>
+<tr><td>Why did you exclude race and religion?</td><td>+0.7pt measured, refused on legal + ethical + production-deployability grounds (§8).</td></tr>
+<tr><td>Will this generalise to the private 60%?</td><td>All 3 traps caught; clean prep (no z-score leak); rolling validation; no public-LB chasing.</td></tr>
+<tr><td>Why ensemble instead of one model?</td><td>Different families make different mistakes → averaging decorrelates errors (+0.4pt over single LGBM).</td></tr>
+<tr><td>What's your biggest weakness?</td><td>No probability calibration, no formal fairness audit on proxies yet (§11 future work).</td></tr>
+<tr><td>How would you deploy it?</td><td>Calibration (Platt), SHAP per-decision explanations, drift monitoring on each feature.</td></tr>
+</table>
+
+</section>
+
+<!-- ================= ITALIANO ================= -->
+<section class="lang lang-it">
+
+<div class="toc">
+  <strong>Indice</strong>
+  <ol>
+    <li><a href="#it-intro">Problema e framing</a></li>
+    <li><a href="#it-data">I dati</a></li>
+    <li><a href="#it-traps">Le tre trappole</a></li>
+    <li><a href="#it-cleaning">Pulizia e feature engineering</a></li>
+    <li><a href="#it-pipeline">Diagramma della pipeline</a></li>
+    <li><a href="#it-model">Architettura del modello</a></li>
+    <li><a href="#it-validation">Strategia di validazione</a></li>
+    <li><a href="#it-ethics">Etica</a></li>
+    <li><a href="#it-results">Risultati</a></li>
+    <li><a href="#it-qa">Domande anticipate</a></li>
+  </ol>
+</div>
+
+<h2 id="it-intro">1. Problema e framing</h2>
+<div class="card">
+<p><strong>Task.</strong> Classificazione binaria: prevedere <code>credit_decision</code> (1 = approvato, 0 = rifiutato) per 5.000 domande di prestito personale di maggio 2026, dati 25.000 esiti storici dal 2022 ad aprile 2026.</p>
+<p><strong>Metrica.</strong> Accuracy sulla label dura 0/1. Quindi la soglia probabilità→label fa parte del modello.</p>
+<p><strong>Cosa stiamo prevedendo davvero:</strong> la decisione storica dell'analista, non se il prestito sia poi andato in default. Eventuali bias dell'analista finiscono nel target — importante per la sezione etica.</p>
+<p><strong>Dimensione temporale.</strong> Il train finisce ad aprile 2026, il test è interamente maggio 2026 → out-of-time. La validazione deve rispettare il tempo, non essere solo random.</p>
+</div>
+
+<h2 id="it-data">2. I dati</h2>
+<table>
+<tr><th>Set</th><th>Righe</th><th>Periodo</th><th>Target</th></tr>
+<tr><td>Train</td><td>25.000</td><td>2022-01 → 2026-04</td><td>✅ presente</td></tr>
+<tr><td>Test</td><td>5.000</td><td>solo 2026-05</td><td>❌ da prevedere</td></tr>
+</table>
+<p>Bilanciamento target: <strong>51,98% approvati / 48,02% rifiutati</strong>. Una baseline maggioritaria fa solo 0,52 → ogni punto di accuracy va guadagnato.</p>
+<p>Public leaderboard = 40% del test (2.000 righe). <strong>Private leaderboard = 60% (3.000 righe)</strong> — solo il privato fa media nel voto.</p>
+
+<h2 id="it-traps">3. Le tre trappole</h2>
+<p>Il prof ha scritto nel brief: <em>"Non assumete che ogni colonna sia ugualmente affidabile."</em> Preso alla lettera, abbiamo cercato colonne sabotate. Ne abbiamo trovate tre.</p>
+
+<div class="card trap">
+<h4>Trappola 1 — <code>internal_code</code>: leak piantato</h4>
+<p>Correla col target a <strong>+0,92</strong> nel train. Una regola banale <code>internal_code &gt; 50</code> raggiunge <strong>99,1% di accuracy sul train</strong>. Sembra la feature migliore del dataset.</p>
+<p><strong>Rilevamento — opinion-probe.</strong> <code>analyst_opinion</code> è composta dagli stessi 60 template fissi sia nel train che nel test. Il loro tasso di approvazione per template è un proxy stabile del segnale vero. Una feature genuina deve correlare con quel proxy <em>allo stesso modo</em> in train e in test. <code>internal_code</code> non lo fa:</p>
+<pre><code>opmap = train.groupby('analyst_opinion').credit_decision.mean()  # 60 template
+tr_op = train.analyst_opinion.map(opmap)
+te_op = test.analyst_opinion.map(opmap)
+
+train.internal_code.corr(tr_op)   # +0.46  → segnale reale
+test.internal_code.corr(te_op)    # ≈ 0.00 → scrambleato nel test</code></pre>
+<p>Distribuzione marginale identica in train e test, ma nel test i valori sono scollegati da ogni altra feature di rischio. I valori sono stati <strong>scrambleati</strong>.</p>
+<p><span class="tag drop">DROP</span> Senza questa scoperta, il modello avrebbe fatto ~99% in cross-validation e ~52% sul 60% privato.</p>
+</div>
+
+<div class="card trap">
+<h4>Trappola 2 — <code>external_pd_score</code>: sparisce nel test</h4>
+<p>5,2% mancante nel train (utilizzabile). <strong>100% mancante nel test</strong> (inutile a inference time).</p>
+<p>Beccata con una riga: <code>train.isna().mean()</code> vs <code>test.isna().mean()</code>.</p>
+<p><span class="tag drop">DROP</span></p>
+</div>
+
+<div class="card trap">
+<h4>Trappola 3 — <code>race</code>, <code>religion</code>: la trappola etica</h4>
+<p>Presenti come codici sintetici. Costo misurato del loro utilizzo: <strong>+0,7pt</strong> di accuracy (0,859 → 0,866).</p>
+<p>Rifiutate per principio. Motivi in §8.</p>
+<p><span class="tag drop">DROP</span></p>
+</div>
+
+<h2 id="it-cleaning">4. Pulizia e feature engineering</h2>
+<p>Tutta la pulizia vive in un unico modulo condiviso — <code>src/prep.py</code> (v1) e <code>src/prep_v2.py</code> (audit-fixed) — quindi train e test vengono puliti in modo identico. Niente leakage, completamente riproducibile.</p>
+
+<h3>Snippet più importante — fix delle date</h3>
+<pre><code>def parse_dates(s):
+    iso = pd.to_datetime(s, format='%Y-%m-%d', errors='coerce')   # 2022-06-08
+    mon = pd.to_datetime(s, format='%b-%Y',    errors='coerce') + pd.Timedelta(days=14)  # Apr-2026
+    return iso.fillna(mon)</code></pre>
+<p>Split ~50/50 tra i due formati; li combiniamo, datando <code>Mon-YYYY</code> a metà mese.</p>
+
+<h3>Fix dell'unità di misura del reddito (istogramma bimodale)</h3>
+<pre><code># log10(ann_income) è bimodale con un gap vuoto tra 700 e 2000:
+# metà righe in migliaia, metà in unità. Riscalare sotto il gap.
+inc = pd.to_numeric(df['ann_income'], errors='coerce')
+out['ann_income'] = np.where(inc &lt; 700, inc * 1000, inc)</code></pre>
+
+<h3>Risk shape features (la inverted-U)</h3>
+<pre><code># Correlazione lineare col target solo -0.08 → i risk indicator sembravano inutili.
+# Ma l'approvazione è massima al centro (~50) e cala agli estremi:
+X['risk12_dev'] = (X.risk12 - 55).abs()
+X['risk3_dev']  = (X.risk3  - 55).abs()
+X['risk_max']   = X[['risk12','risk3']].max(axis=1)
+X['risk_mean']  = X[['risk12','risk3']].mean(axis=1)</code></pre>
+<p>Queste shape feature finiscono ai <strong>primi posti</strong> della feature importance — i risk indicator grezzi da soli sarebbero stati quasi inutili.</p>
+
+<h3>Z-score dei credit bureau (fix del data leak)</h3>
+<pre><code># Tre bureau (FICO, Vantage, SCHUFA) → tre scale diverse.
+# Fix v2: calcolare le statistiche dello z-score SOLO sul train, poi applicare al test.
+for c in ['cr_scores_fico','cr_scores_vantage','cr_scores_schufa']:
+    mu, sd = train[c].mean(), train[c].std()        # solo train, niente sbirciate al test
+    train[c+'_z'] = (train[c] - mu) / sd
+    test[c+'_z']  = (test[c]  - mu) / sd
+credit_z = fico_z.fillna(vantage_z).fillna(schufa_z)</code></pre>
+
+<h2 id="it-pipeline">5. Diagramma della pipeline</h2>
+<div class="diagram">
+<svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagramma pipeline dati">
+  <defs>
+    <marker id="arrIt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <style>
+    .ibox{fill:#fff;stroke:#1f3a5f;stroke-width:1.5;rx:6}
+    .ibox-red{fill:#fce8e6;stroke:#c0392b;stroke-width:1.5;rx:6}
+    .ibox-green{fill:#e6f4ea;stroke:#27ae60;stroke-width:1.5;rx:6}
+    .ilbl{font-family:sans-serif;font-size:13px;fill:#222;text-anchor:middle}
+    .ilbl-bold{font-weight:600}
+    .iarrow{stroke:#1f3a5f;stroke-width:1.5;fill:none;marker-end:url(#arrIt)}
+  </style>
+  <rect class="ibox" x="20" y="20" width="160" height="50"/>
+  <text class="ilbl ilbl-bold" x="100" y="50">train.csv / test.csv</text>
+
+  <rect class="ibox-red" x="220" y="20" width="170" height="50"/>
+  <text class="ilbl ilbl-bold" x="305" y="42">drop 3 trappole</text>
+  <text class="ilbl" x="305" y="58" font-size="11">internal_code · pd_score · race/religion</text>
+
+  <rect class="ibox" x="430" y="20" width="150" height="50"/>
+  <text class="ilbl ilbl-bold" x="505" y="42">parse_dates()</text>
+  <text class="ilbl" x="505" y="58" font-size="11">ISO + Mon-YYYY</text>
+
+  <rect class="ibox" x="610" y="20" width="130" height="50"/>
+  <text class="ilbl ilbl-bold" x="675" y="42">fix unità</text>
+  <text class="ilbl" x="675" y="58" font-size="11">reddito ×1000</text>
+
+  <rect class="ibox" x="20" y="120" width="160" height="50"/>
+  <text class="ilbl ilbl-bold" x="100" y="142">coalesce risk1/2</text>
+  <text class="ilbl" x="100" y="158" font-size="11">corr(r1,r2)=1.0</text>
+
+  <rect class="ibox" x="220" y="120" width="170" height="50"/>
+  <text class="ilbl ilbl-bold" x="305" y="142">risk shape feats</text>
+  <text class="ilbl" x="305" y="158" font-size="11">|risk-55|, max, mean</text>
+
+  <rect class="ibox" x="430" y="120" width="150" height="50"/>
+  <text class="ilbl ilbl-bold" x="505" y="142">z-score credit</text>
+  <text class="ilbl" x="505" y="158" font-size="11">solo train</text>
+
+  <rect class="ibox" x="610" y="120" width="130" height="50"/>
+  <text class="ilbl ilbl-bold" x="675" y="142">flag missing</text>
+  <text class="ilbl" x="675" y="158" font-size="11">reddito / pd</text>
+
+  <rect class="ibox-green" x="160" y="220" width="220" height="50"/>
+  <text class="ilbl ilbl-bold" x="270" y="242">X pulito (20 feature)</text>
+  <text class="ilbl" x="270" y="258" font-size="11">numerici + categoriche native</text>
+
+  <rect class="ibox-green" x="420" y="220" width="220" height="50"/>
+  <text class="ilbl ilbl-bold" x="530" y="242">ENSEMBLE (16 modelli)</text>
+  <text class="ilbl" x="530" y="258" font-size="11">LGBM × 9 + XGB × 3 + CAT × 4</text>
+
+  <rect class="ibox-green" x="270" y="310" width="220" height="50"/>
+  <text class="ilbl ilbl-bold" x="380" y="332">submission CSV</text>
+  <text class="ilbl" x="380" y="348" font-size="11">5.000 righe, soglia smussata</text>
+
+  <line class="iarrow" x1="180" y1="45" x2="218" y2="45"/>
+  <line class="iarrow" x1="390" y1="45" x2="428" y2="45"/>
+  <line class="iarrow" x1="580" y1="45" x2="608" y2="45"/>
+  <line class="iarrow" x1="675" y1="70" x2="675" y2="118"/>
+  <line class="iarrow" x1="610" y1="145" x2="582" y2="145"/>
+  <line class="iarrow" x1="430" y1="145" x2="392" y2="145"/>
+  <line class="iarrow" x1="220" y1="145" x2="182" y2="145"/>
+  <line class="iarrow" x1="100" y1="170" x2="100" y2="200" />
+  <line class="iarrow" x1="100" y1="200" x2="270" y2="218"/>
+  <line class="iarrow" x1="380" y1="245" x2="418" y2="245"/>
+  <line class="iarrow" x1="530" y1="270" x2="380" y2="308"/>
+</svg>
+</div>
+
+<h2 id="it-model">6. Architettura del modello</h2>
+<div class="card">
+<p>Tre famiglie di boosting, mediate. La diversità decorrela gli errori.</p>
+<ul>
+  <li><strong>9 × LightGBM</strong> — top-3 configurazioni (random search) × 3 seed, ognuna 5-fold</li>
+  <li><strong>3 × XGBoost</strong> — 3 seed, ognuno 5-fold</li>
+  <li><strong>4 × CatBoost</strong> — 2 configurazioni × 2 seed, 5-fold (encoding categorico nativo per i 60 template di opinion)</li>
+</ul>
+<p>Step semi-supervisionato (v8/v10): pseudo-label delle righe test dove l'ensemble base ha confidence ≥ 97%, aggiunte a ogni fold di training con sample_weight = 0,5, e refit.</p>
+</div>
+
+<div class="diagram">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagramma architettura ensemble">
+  <style>
+    .ib{fill:#fff;stroke:#1f3a5f;stroke-width:1.5;rx:6}
+    .il{font-family:sans-serif;font-size:13px;fill:#222;text-anchor:middle;font-weight:600}
+    .il2{font-family:sans-serif;font-size:11px;fill:#555;text-anchor:middle}
+    .iar{stroke:#1f3a5f;stroke-width:1.5;fill:none;marker-end:url(#arr3)}
+  </style>
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <rect class="ib" x="20" y="20" width="140" height="60" style="fill:#fff8e6"/>
+  <text class="il" x="90" y="45">X pulito</text>
+  <text class="il2" x="90" y="62">20 feature</text>
+
+  <rect class="ib" x="220" y="10" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="il" x="300" y="34">9 × LightGBM</text>
+
+  <rect class="ib" x="220" y="62" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="il" x="300" y="86">3 × XGBoost</text>
+
+  <rect class="ib" x="220" y="114" width="160" height="42" style="fill:#e6f0ff"/>
+  <text class="il" x="300" y="138">4 × CatBoost</text>
+
+  <rect class="ib" x="440" y="60" width="140" height="60" style="fill:#fce8e6"/>
+  <text class="il" x="510" y="84">mean blend</text>
+  <text class="il2" x="510" y="102">16 probabilità → 1</text>
+
+  <rect class="ib" x="600" y="60" width="110" height="60" style="fill:#e6f4ea"/>
+  <text class="il" x="655" y="80">soglia smussata</text>
+  <text class="il2" x="655" y="96">top-1% avg ≈ 0,527</text>
+
+  <rect class="ib" x="20" y="160" width="690" height="60" style="fill:#fafafa"/>
+  <text class="il" x="365" y="184">Pseudo-labeling (v8 / v10)</text>
+  <text class="il2" x="365" y="202">righe test con confidence ≥ 0,97 aggiunte a peso 0,5 — misurato +0,14pt sulla rolling</text>
+
+  <line class="iar" x1="160" y1="50" x2="218" y2="31"/>
+  <line class="iar" x1="160" y1="50" x2="218" y2="83"/>
+  <line class="iar" x1="160" y1="50" x2="218" y2="135"/>
+  <line class="iar" x1="380" y1="31" x2="438" y2="80"/>
+  <line class="iar" x1="380" y1="83" x2="438" y2="92"/>
+  <line class="iar" x1="380" y1="135" x2="438" y2="104"/>
+  <line class="iar" x1="580" y1="90" x2="598" y2="90"/>
+</svg>
+</div>
+
+<h2 id="it-validation">7. Strategia di validazione</h2>
+<p>Tre lenti indipendenti, ognuna che cattura un fallimento che le altre mancano.</p>
+<table>
+<tr><th>Schema</th><th>Cosa cattura</th></tr>
+<tr><td>5-fold Stratified K-Fold OOF</td><td>Performance media su 25k righe, usata per tunare la soglia</td></tr>
+<tr><td>Time split (train ≤ 2024 → validate 2025–26)</td><td>Drift temporale che un random split nasconderebbe</td></tr>
+<tr><td><strong>Rolling next-month harness</strong></td><td>Simulazione più fedele del task reale: train finisce 04/2026, test è 05/2026</td></tr>
+</table>
+<p>Per ognuno degli ultimi 6 mesi del train: fit su tutto il precedente, predizione di quel mese → 2.886 predizioni pooled out-of-time. Ogni esperimento è stato giudicato qui, non sul public LB.</p>
+
+<h3>Codice: OOF 5-fold + soglia smussata</h3>
+<pre><code>oof = np.zeros(len(X))
+for tr_i, va_i in StratifiedKFold(5, shuffle=True, random_state=42).split(X, y):
+    m = lgb.LGBMClassifier(**params)
+    m.fit(X.iloc[tr_i], y.iloc[tr_i],
+          eval_set=[(X.iloc[va_i], y.iloc[va_i])],
+          callbacks=[lgb.early_stopping(150)])
+    oof[va_i] = m.predict_proba(X.iloc[va_i])[:, 1]
+
+# Soglia smussata — evita che l'argmax overfitti il rumore OOF
+ths = np.linspace(0.35, 0.65, 601)
+accs = [((oof &gt; t) == y).mean() for t in ths]
+smooth_t = ths[np.argsort(accs)[-6:]].mean()   # media top-1% ≈ 0,527</code></pre>
+
+<h2 id="it-ethics">8. Etica</h2>
+<div class="card">
+<p><code>race</code> e <code>religion</code> sono nel dataset come codici sintetici. Usarle dà <strong>+0,7pt</strong> di accuracy (misurato).</p>
+<p>Abbiamo rifiutato, per quattro motivi:</p>
+<ul>
+  <li><strong>Legale:</strong> GDPR (UE), ECOA (USA), Equal Credit Opportunity Act — l'uso di attributi protetti nel credito è illegale.</li>
+  <li><strong>Etico:</strong> il target codifica eventuali bias storici degli analisti; riprodurli li amplifica.</li>
+  <li><strong>Pratico:</strong> un modello che richiede attributi protetti non può andare in produzione.</li>
+  <li><strong>Metodologico:</strong> il brief segnalava esplicitamente queste colonne — usarle significherebbe fallire la domanda etica implicita.</li>
+</ul>
+</div>
+
+<h2 id="it-results">9. Risultati</h2>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="num">0,8590</div><div class="lbl">Accuracy OOF</div></div>
+  <div class="kpi"><div class="num">0,9377</div><div class="lbl">ROC-AUC OOF</div></div>
+  <div class="kpi"><div class="num">0,8565</div><div class="lbl">Public LB (v6 best)</div></div>
+  <div class="kpi"><div class="num">0,509</div><div class="lbl">Approval rate predetto</div></div>
+</div>
+
+<table>
+<tr><th>Modello</th><th>Accuracy 5-fold</th></tr>
+<tr><td>Naive Bayes</td><td>0,7597</td></tr>
+<tr><td>LDA</td><td>0,7770</td></tr>
+<tr><td>Logistic Regression</td><td>0,7835</td></tr>
+<tr><td>Random Forest</td><td>0,8334</td></tr>
+<tr><td>Single LightGBM</td><td>0,8358</td></tr>
+<tr><td><strong>Ensemble (LGBM+XGB+CatBoost)</strong></td><td><strong>0,8590</strong></td></tr>
+</table>
+
+<p><strong>Plateau del public LB:</strong> le ultime tre submission stanno a 0,8535 / 0,8540 / 0,8565 — entro ±5 righe sulle 2.000 del public. È il floor del rumore; abbiamo smesso di inseguirlo.</p>
+
+<h2 id="it-qa">10. Domande anticipate</h2>
+<table>
+<tr><th>Probabile domanda</th><th>Risposta breve</th></tr>
+<tr><td>Come avete trovato il leak di <code>internal_code</code>?</td><td>Opinion-probe (§3) — la correlazione col tasso di approvazione dei 60 template non torna tra train e test.</td></tr>
+<tr><td>Perché avete escluso race e religion?</td><td>+0,7pt misurati, rifiutati per ragioni legali + etiche + di deployability (§8).</td></tr>
+<tr><td>Generalizzerà sul 60% privato?</td><td>Tutte e 3 le trappole catturate; prep pulito (niente leak nel z-score); rolling validation; nessuna rincorsa al public LB.</td></tr>
+<tr><td>Perché un ensemble e non un solo modello?</td><td>Famiglie diverse fanno errori diversi → la media decorrela (+0,4pt vs LGBM singolo).</td></tr>
+<tr><td>Qual è il vostro punto debole?</td><td>Niente calibrazione delle probabilità, nessun audit formale di fairness sui proxy (§11 future work).</td></tr>
+<tr><td>Come lo deployereste?</td><td>Calibrazione (Platt), SHAP per spiegazioni per-decisione, monitoring di drift su ogni feature.</td></tr>
+</table>
+
+</section>
+
+<footer>
+  ESADE — Data Science for Finance, Term 3 (2026) · <a href="https://github.com/GianlucaBave/final-data-finance">github.com/GianlucaBave/final-data-finance</a>
+</footer>
+
+</main>
+
+<script>
+const btn = document.getElementById('lang-toggle');
+const en = document.querySelector('.lang-en');
+const it = document.querySelector('.lang-it');
+let lang = 'en';
+btn.addEventListener('click', () => {
+  if (lang === 'en') {
+    en.classList.remove('active');
+    it.classList.add('active');
+    btn.textContent = '🇬🇧 English';
+    lang = 'it';
+  } else {
+    it.classList.remove('active');
+    en.classList.add('active');
+    btn.textContent = '🇮🇹 Italiano';
+    lang = 'en';
+  }
+  window.scrollTo({top: 0, behavior: 'instant'});
+});
+</script>
+
+</body>
+</html>
