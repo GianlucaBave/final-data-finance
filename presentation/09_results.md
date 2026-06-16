@@ -16,6 +16,8 @@
 
 **Public leaderboard: tied for #1 at 0.8565** (vs leader 0.8565). Our calibration is tight — v1 validated at 0.8525 and scored 0.8515 publicly (±0.1pt).
 
+![score progression](assets/figures/09_score_progression.png)
+
 ## The validation→leaderboard gap is real but small
 
 OOF ~0.861 vs public ~0.856. That ~0.5pt gap is **distribution shift** — May 2026 is genuinely a bit harder than the 4-year average, which the rolling harness already warned us about. It is *not* overfitting: our gap is stable and we never tuned to the public score.
@@ -23,6 +25,9 @@ OOF ~0.861 vs public ~0.856. That ~0.5pt gap is **distribution shift** — May 2
 ## The threshold lesson (visible in the table)
 
 Every time we loosened the cutoff (higher approval rate), the score dropped: v3 (0.518) and v7 (0.524) underperformed their siblings at ~0.512. The 2026 approval trend is **declining** (52.8% in 2022 → 51.1% in 2026), so a ~0.51 approval rate is the right posture.
+
+![confusion matrix](assets/figures/09_confusion_matrix.png)
+![feature importance](assets/figures/09_feature_importance.png)
 
 ## Final-submission selection
 
@@ -33,7 +38,7 @@ Kaggle counts only the (up to) 2 submissions we **select**. We pick **v6** (publ
 ### Speaker notes
 Headline: *"Tied for first on the public board — and we got there clean: no leak, no protected attributes."* Then the nuance grader bait: explain the CV→LB gap is **distribution shift, not overfitting**, and that we *expected* it because the rolling harness already showed May-2026-style months are harder. The threshold table is a great teaching moment — same model, different cutoff, measurably different score.
 
-### Assets to add
-- `assets/figures/09_score_progression.png` — OOF vs public LB across v1→v8
-- `assets/figures/09_confusion_matrix.png` — final model on OOF
-- `assets/figures/09_feature_importance.png` — top 10 (risk12, risk3, amt_to_income, analyst_opinion, total_income, credit_z…)
+### Assets (generated — `src/make_figures.py`)
+- ✅ `assets/figures/09_score_progression.png` — OOF vs public LB across v1→v8
+- ✅ `assets/figures/09_confusion_matrix.png` — final model on OOF
+- ✅ `assets/figures/09_feature_importance.png` — gain importance (risk_mean, amt_to_income, risk_max…)

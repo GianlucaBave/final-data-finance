@@ -4,6 +4,18 @@
 
 We treated this as a forensics problem. The most important tool we built was the **opinion-probe integrity check**: `analyst_opinion` is 60 fixed template sentences whose approval rates we know, and the *same* 60 appear in test. So for any suspect column we compare its correlation with the opinion tier in **train vs test** — a genuine feature must behave the same in both; a sabotaged one won't.
 
+```python
+# The opinion-probe: does a column relate to real signal the SAME way in train and test?
+opmap = train.groupby('analyst_opinion').credit_decision.mean()   # 60 templates → approval rate
+tr_op = train.analyst_opinion.map(opmap)
+te_op = test.analyst_opinion.map(opmap)
+
+print(train.internal_code.corr(tr_op))   # +0.46  → looks like a real risk signal
+print(test.internal_code.corr(te_op))    # -0.02  → but it's RANDOM in test = scrambled
+```
+
+![internal_code leak](assets/figures/04_internal_code_leak.png)
+
 ## Issues found (verified, not assumed)
 
 | # | Column(s) | Issue | Evidence | Action |
@@ -24,6 +36,11 @@ We treated this as a forensics problem. The most important tool we built was the
 - **Target balance:** 51.98% approved / 48.02% rejected
 - **Missingness leaders:** `cr_scores_schufa` 97%, `vantage` 95%, `fico` 90%, `prev_default` 48%, `risk_indicator_1/2` ~49% each, `age`/`birth_year` ~10%
 - **The two columns that would have wrecked us if trusted:** `internal_code` (leak) and `external_pd_score` (absent in test) — together they have the two highest single-column correlations with the target (+0.92, −0.57)
+
+![missingness train vs test](assets/figures/04_missing_values_bar.png)
+![income bimodal](assets/figures/04_income_bimodal_hist.png)
+![risk inverted-U](assets/figures/04_risk_inverted_u.png)
+![target balance](assets/figures/04_target_balance.png)
 
 ---
 

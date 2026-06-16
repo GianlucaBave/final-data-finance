@@ -29,6 +29,23 @@ Accuracy needs a hard 0/1 label, so we tune the probability cutoff on OOF predic
 - **LightGBM:** 18-config random search (learning rate, num_leaves, min_child_samples, feature/bagging fractions, L2) → kept top-3 configs (`src/best_params.json`).
 - **CatBoost:** 7-config search over depth / learning rate / L2 (`src/best_cat.json`) — depth 6, lr 0.03, l2 3.
 
+## How we train + tune the threshold (core loop)
+
+```python
+# 5-fold out-of-fold predictions — every row predicted by a model that never saw it
+oof = np.zeros(len(X))
+for tr_i, va_i in StratifiedKFold(5, shuffle=True, random_state=42).split(X, y):
+    m = lgb.LGBMClassifier(**params)
+    m.fit(X.iloc[tr_i], y.iloc[tr_i],
+          eval_set=[(X.iloc[va_i], y.iloc[va_i])],
+          callbacks=[lgb.early_stopping(150)])
+    oof[va_i] = m.predict_proba(X.iloc[va_i])[:, 1]
+
+# metric is ACCURACY → tune the 0/1 cutoff on OOF probabilities, don't assume 0.5
+ths  = np.linspace(0.35, 0.65, 601)
+best = max(ths, key=lambda t: ((oof > t) == y).mean())   # ≈ 0.52 → approval rate ≈ 0.51
+```
+
 ## Final pipeline (v8)
 
 ```

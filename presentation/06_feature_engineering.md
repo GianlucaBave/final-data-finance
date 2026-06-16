@@ -39,6 +39,24 @@ Treating it as a single categorical lets the model learn each template's exact a
 - **`highest_ed`:** kept ordinal (1–5).
 - **Missing values:** left as NaN for the trees to split on (they handle it natively); only `age` is explicitly imputed.
 
+## The risk shape features (the trick that unlocked the indicators)
+
+```python
+# linear corr with target was only -0.08 → looked useless.
+# but approval peaks mid-range and drops at both extremes (inverted-U):
+X['risk12_dev'] = (X.risk12 - 55).abs()      # distance from the "safe" middle
+X['risk3_dev']  = (X.risk3  - 55).abs()
+X['risk_max']   = X[['risk12','risk3']].max(axis=1)
+X['risk_mean']  = X[['risk12','risk3']].mean(axis=1)
+```
+
+These shape features end up **at the top of the importance ranking** — the raw indicators alone would have been nearly worthless.
+
+![opinion tiers](assets/figures/06_opinion_tiers.png)
+![feature importance](assets/figures/06_feature_importance.png)
+
+Top features by gain: `risk_mean`, `amt_to_income`, `risk_max`, `risk12_dev`, `total_income`, `analyst_opinion`, `age`.
+
 ## What we tested and dropped
 
 - **Provenance flags** (recovering which legacy system a row came from, via date/encoding style) — no lift (0.8600 vs 0.8604). The format mess was a *cleaning* test, not a hidden feature.
@@ -49,5 +67,5 @@ Treating it as a single categorical lets the model learn each template's exact a
 The crowd-pleaser here is the inversion of the usual NLP story: *"the smartest move on the free-text column was to realize it wasn't really free text — it's 60 canned verdicts, so we let the model memorize each one's approval rate."* Also call out the **inverted-U risk feature** — linear correlation said the risk indicators were useless (−0.08), but `|risk − 55|` unlocked real signal.
 
 ### Assets to add
-- `assets/figures/06_opinion_tiers.png` — approval rate across the 60 opinions (3 tiers visible)
-- `assets/figures/06_feature_importance.png` — gain importance (risk12, risk3, amt_to_income, analyst_opinion on top)
+- ✅ `assets/figures/06_opinion_tiers.png` — approval rate across the 60 opinions (3 tiers visible)
+- ✅ `assets/figures/06_feature_importance.png` — gain importance (risk_mean, amt_to_income, risk_max, risk12_dev on top)
