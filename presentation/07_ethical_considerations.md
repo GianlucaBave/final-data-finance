@@ -2,26 +2,35 @@
 
 ## The columns we deliberately excluded
 
-`religion` and `race` are present in the dataset as **synthetic demographic codes**. The data dictionary explicitly flags them:
+`religion` and `race` are present as synthetic demographic codes. The brief flags them explicitly:
 
 > *"Synthetic group code is used because demographic variables may be subject to legal and regulatory limitations for fairness and discrimination-related issues."*
 
-## Our decision
+## The trade-off, quantified
 
-We **drop** both columns from the modelling pipeline.
+| Setup | OOF Accuracy |
+|---|---|
+| Our model — no `race` / `religion` | **0.859** |
+| Same model + `race` + `religion` | ~0.866 (+0.7 pt) |
+
+**The +0.7 pt is real. We refused it anyway.**
 
 ## Why
 
-- **Legal:** EU and US frameworks (GDPR, ECOA, Equal Credit Opportunity Act) prohibit credit decisions based on protected attributes.
-- **Ethical:** Even if predictive, using these features would encode and amplify historical bias.
-- **Practical:** A model that depends on protected attributes is unusable in production.
+| Reason | Detail |
+|---|---|
+| **Legal** | GDPR (EU), ECOA (US), Equal Credit Opportunity Act — protected-attribute use is unlawful in credit decisions |
+| **Ethical** | Encoding historical bias into the model amplifies it |
+| **Practical** | A model that needs protected attributes cannot be deployed |
+| **Methodological** | The professor flagged these columns as a test — using them would fail the implicit ethics question |
 
-## Going further (mentioned, not implemented)
+## Going further (in scope for a follow-up)
 
-- Fairness audits on proxies (e.g. ZIP-code-like features) — none of those here
-- Disparate-impact testing on model outputs
+- Fairness audit on *proxies*: do current features (job_category, ZIP-like codes, etc.) act as race/religion proxies?
+- Disparate-impact ratio on model approval rates
+- Counterfactual fairness tests
 
 ---
 
 ### Speaker notes
-Lead with a strong line: *"We could have used these features. We chose not to — and we'd argue you shouldn't either."* Makes the project look mature.
+Strong opening line: *"We could have used these features. We measured the gain. We chose not to."* That's a Master-level answer to an ethics question.
