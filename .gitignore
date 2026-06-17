@@ -15,3 +15,6 @@ submissions/*.csv
 
 # model artifacts
 src/*.npy
+
+# Office lock/temp files
+~\$*
