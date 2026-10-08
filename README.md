@@ -1,6 +1,6 @@
 # Personal Loan Credit Decision
 
-**Tied #1 on the public leaderboard (0.8565 accuracy)** of the ESADE DSF 26 Kaggle competition.
+**Tied #1 on the public leaderboard (0.8565 accuracy)** of a private Kaggle competition.
 
 Binary classification of personal-loan applications (approve / reject) on 25,000 messy records merged from several legacy systems.
 
