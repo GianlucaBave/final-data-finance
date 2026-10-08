@@ -1,4 +1,4 @@
-"""Cleaning and feature engineering for ESADE DSF26 — v2.
+"""Cleaning and feature engineering for DSF26 — v2.
 
 Differences vs prep.py:
 - Z-score normalization of credit scores uses TRAIN-ONLY stats (no test peeking)

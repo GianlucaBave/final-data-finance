@@ -1,4 +1,4 @@
-"""Shared cleaning/feature engineering for the ESADE DSF26 credit challenge."""
+"""Shared cleaning/feature engineering for the DSF26 credit challenge."""
 import pandas as pd, numpy as np
 
 DROP_TAMPERED = ['internal_code']          # scrambled in test (verified via opinion-probe)

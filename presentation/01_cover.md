@@ -7,12 +7,11 @@
 
 ## Subtitle / Context
 
-ESADE — Data Science for Finance, Term 3 (2026)
-Kaggle competition: ESADE DSF26 — evaluation metric: **Accuracy**
+Data Science for Finance, Term 3 (2026)
+Kaggle competition: DSF26 — evaluation metric: **Accuracy**
 
 ## Team
 
-- Gianluca Bavelloni
 - Riwad Irshied
 
 ## Date
