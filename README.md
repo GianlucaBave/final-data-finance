@@ -1,4 +1,23 @@
-# ESADE DSF 26 — Personal Loan Credit Decision
+# Personal Loan Credit Decision
+
+**Tied #1 on the public leaderboard (0.8565 accuracy)** of the ESADE DSF 26 Kaggle competition.
+
+Binary classification of personal-loan applications (approve / reject) on 25,000 messy records merged from several legacy systems.
+
+## Highlights
+
+- **Data cleaning:** reconciled inconsistent date formats, units and category encodings; caught and dropped a planted leak (`internal_code`: +0.92 correlation with the target in train, scrambled in test).
+- **Models:** climbed from Naive Bayes (0.760) through Logistic Regression (0.784) and Random Forest (0.833) to a LightGBM + XGBoost + CatBoost ensemble (0.859 out-of-fold, AUC 0.938).
+- **Honest validation:** a rolling time-based harness and adversarial validation (AUC 0.497 with dates excluded) showed the validation-to-leaderboard gap is distribution shift, not overfitting.
+- **Decision threshold:** tuned to the declining approval trend (52.8% in 2022 to 51.1% in 2026) rather than to the public score.
+
+![Score progression](presentation/assets/figures/09_score_progression.png)
+
+Full notebook: [`notebooks/credit_decision_pipeline.ipynb`](notebooks/credit_decision_pipeline.ipynb) · Slides: [`presentation/`](presentation/)
+
+---
+
+## Competition brief
 
 Kaggle competition: [esade-dsf-26-personal-loan-credit-decision](https://www.kaggle.com/competitions/esade-dsf-26-personal-loan-credit-decision)
 
